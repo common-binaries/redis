@@ -59,10 +59,10 @@ jobs:
           LDFLAGS: ${{ env.LINUX_LDFLAGS }}
         run: |
           pwd
-          ls -l
-          cd redis*
-          build
-          mv src/redis-server artifact/
+          cd redis-${{ matrix.REDIS_VERSION }}
+          pwd
+          make
+          mv src/redis-server ../artifact/
         shell: alpine.sh {0}
 
       - name: Upload redis binary to artifacts
