@@ -1,0 +1,149 @@
+name: binaries
+on:
+  workflow_dispatch:
+  push:
+    tags-ignore:
+      - 'v**'
+    branches:
+      - '**'
+    paths:
+      - .github/workflows/binaries.yml
+  pull_request:
+  schedule:
+    - cron:  '0 0 * * 0'  # run each Sunday
+
+env:
+  ALPINE_BRANCH: v3.18
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  JOBS: 3
+  LINUX_LDFLAGS: -static
+  WIN32_LDFLAGS: -Wl,--as-needed -Wl,-Map,linker.map
+  # Don't update binaries with unchanged sources.
+  SKIP_SAME_SOURCES: true
+
+jobs:
+  redis-multi-linux:
+    name: redis-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        REDIS_VERSION:
+          - 7.2.4
+        ARCH:
+          - x86_64
+          - aarch64
+        include:
+          - REDIS_VERSION: 7.2.4
+    steps:
+      - name: Download Redis
+        run: wget https://github.com/redis/redis/archive/${{ matrix.REDIS_VERSION }}.tar.gz
+
+      - name: Extract Redis
+        run: tar xvzf ${{ matrix.REDIS_VERSION }}.tar.gz
+
+      - name: Install Alpine ${{ env.ALPINE_BRANCH }} for ${{ matrix.ARCH }}
+        uses: common-binaries/setup-alpine@v1
+        with:
+          arch: ${{ matrix.ARCH }}
+          branch: ${{ env.ALPINE_BRANCH }}
+          packages: >
+            build-base
+            linux-headers
+            openssl-dev
+            openssl-libs-static
+            zlib-dev
+            zlib-static
+
+      - name: Build Redis
+        env:
+          LDFLAGS: ${{ env.LINUX_LDFLAGS }}
+        run: |
+          cd redis*
+          build
+          mv src/redis-server artifact/
+        shell: alpine.sh {0}
+
+      - name: Upload redis binary to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: artifact/*
+
+  upload:
+    name: Upload binaries
+    needs:
+      - redis-multi-linux
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    container:
+      image: docker://alpine:3.18
+    steps:
+      - name: Install dependencies
+        run: apk add -U git nodejs tree
+
+      - name: Checkout master branch
+        uses: actions/checkout@v3
+        with:
+          path: master
+
+      - name: Checkout binaries branch
+        uses: actions/checkout@v3
+        with:
+          ref: binaries
+          path: binaries
+
+      - name: Download and unpack all workflow run artifacts
+        uses: actions/download-artifact@v3
+
+      - name: List unpacked artifact files
+        run: ls -lah artifact/
+
+      # XXX: Windows builds of nginx and macOS builds of njs-debug are not reproducible.
+      #  This is a workaround to avoid unnecessary updates of binaries that are built from
+      #  very same sources as the existing (note that we track even used system libs).
+      - name: Move binaries with changed source checksums to the repository
+        if: env.SKIP_SAME_SOURCES == 'true'
+        working-directory: binaries
+        run: |
+          mv ../artifact/*.sources .
+          for name in $(git status --porcelain | cut -c4-); do
+              mv -v ../artifact/${name%.sources}* .
+          done
+
+      - name: Move all binaries to the repository
+        if: env.SKIP_SAME_SOURCES != 'true'
+        run: mv -v artifact/* binaries/
+
+      - name: Generate index.json
+        run: ./master/scripts/generate-index --json binaries/ binaries/index.json
+
+      - name: Generate index.csv
+        run: ./master/scripts/generate-index --csv binaries/ binaries/index.csv
+
+      - name: Generate index.html
+        working-directory: binaries
+        run: tree -hv -H . -o index.html .
+
+      - name: Check if there are any changes
+        id: has_changes
+        working-directory: binaries
+        run: |
+          git status || exit 1
+          test -n "$(git status --porcelain)" && result=yes || result=no
+          echo "result=$result" >> $GITHUB_OUTPUT
+
+      - name: Commit changes
+        if: steps.has_changes.outputs.result == 'yes'
+        working-directory: binaries
+        run: |
+          git config --local user.email "github-actions@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add --all
+          git commit -m "Built from ${{ github.sha }}"
+
+      - name: Push changes back to origin
+        if: steps.has_changes.outputs.result == 'yes'
+        working-directory: binaries
+        run: |
+          # XXX: workaround for https://github.com/orgs/community/discussions/55820
+          git config --global http.version HTTP/1.1
+          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git binaries
