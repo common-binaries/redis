@@ -58,6 +58,8 @@ jobs:
         env:
           LDFLAGS: ${{ env.LINUX_LDFLAGS }}
         run: |
+          pwd
+          ls -l
           cd redis*
           build
           mv src/redis-server artifact/
