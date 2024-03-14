@@ -75,7 +75,7 @@ jobs:
     name: Upload binaries
     needs:
       - redis-multi-linux
-    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     container:
       image: docker://alpine:3.18
@@ -100,9 +100,6 @@ jobs:
       - name: List unpacked artifact files
         run: ls -lah artifact/
 
-      # XXX: Windows builds of nginx and macOS builds of njs-debug are not reproducible.
-      #  This is a workaround to avoid unnecessary updates of binaries that are built from
-      #  very same sources as the existing (note that we track even used system libs).
       - name: Move binaries with changed source checksums to the repository
         if: env.SKIP_SAME_SOURCES == 'true'
         working-directory: binaries
@@ -117,10 +114,10 @@ jobs:
         run: mv -v artifact/* binaries/
 
       - name: Generate index.json
-        run: ./master/scripts/generate-index --json binaries/ binaries/index.json
+        run: ./main/scripts/generate-index --json binaries/ binaries/index.json
 
       - name: Generate index.csv
-        run: ./master/scripts/generate-index --csv binaries/ binaries/index.csv
+        run: ./main/scripts/generate-index --csv binaries/ binaries/index.csv
 
       - name: Generate index.html
         working-directory: binaries
