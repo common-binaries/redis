@@ -1,0 +1,2 @@
+# redis
+Redis standalone binaries
