@@ -17,8 +17,7 @@ jobs:
           - 7.2.4
         ARCH:
           - x86_64
-        include:
-          - REDIS_VERSION: 7.2.4
+          - aarch64
     steps:
       - name: Download Redis
         run: wget https://github.com/redis/redis/archive/${{ matrix.REDIS_VERSION }}.tar.gz
@@ -57,57 +56,10 @@ jobs:
         with:
           path: artifact/*
 
-  redis-x86_64-win32:
-    name: redis-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-windows
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        REDIS_VERSION:
-          - 7.2.4
-        ARCH:
-          - x86_64
-    steps:
-      - name: Setup MSYS2 and install packages
-        uses: msys2/setup-msys2@v2
-        with:
-          update: false
-          install: base-devel mingw-w64-x86_64-toolchain mingw-w64-x86_64-jq
-
-      - name: Download Redis
-        shell: msys2 {0}
-        run: wget https://github.com/redis/redis/archive/${{ matrix.REDIS_VERSION }}.tar.gz
-
-      - name: Extract Redis
-        shell: msys2 {0}
-        run: tar xvzf ${{ matrix.REDIS_VERSION }}.tar.gz
-
-      - name: Build Redis
-        shell: msys2 {0}
-        env:
-          CFLAGS: ${{ env.CFLAGS }}
-        run: |
-          mkdir artifact
-          pwd
-          cd redis-${{ matrix.REDIS_VERSION }}
-          pwd
-          make
-          mkdir conf
-          cp redis.conf conf/
-          mkdir bin
-          mv src/redis-server bin/
-          tar cvzf redis-server-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz conf/ bin/
-          mv redis-server-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz ../artifact/redis-server-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz        
-
-      - name: Upload redis binary to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          path: artifact/*
-
   upload:
     name: Upload binaries
     needs:
       - redis-multi-linux
-      - redis-x86_64-win32
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     container:
