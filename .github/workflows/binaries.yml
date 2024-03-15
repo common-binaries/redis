@@ -75,9 +75,11 @@ jobs:
           install: base-devel mingw-w64-x86_64-toolchain mingw-w64-x86_64-jq
 
       - name: Download Redis
+        shell: msys2 {0}
         run: wget https://github.com/redis/redis/archive/${{ matrix.REDIS_VERSION }}.tar.gz
 
       - name: Extract Redis
+        shell: msys2 {0}
         run: tar xvzf ${{ matrix.REDIS_VERSION }}.tar.gz
 
       - name: Build Redis
