@@ -90,6 +90,15 @@ jobs:
           ref: binaries
           path: binaries
 
+      - name: Delete and recreate binaries branch
+        working-directory: binaries
+        run: |
+          git branch -d binaries
+          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git --delete binaries
+          git checkout --orphan binaries
+          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git binaries:binaries
+          git push --set-upstream https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git binaries
+
       - name: Download and unpack all workflow run artifacts
         uses: actions/download-artifact@v3
 
