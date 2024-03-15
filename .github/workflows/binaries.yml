@@ -84,10 +84,10 @@ jobs:
       - name: Install dependencies
         run: apk add -U git nodejs tree
 
-      - name: Checkout master branch
+      - name: Checkout main branch
         uses: actions/checkout@v3
         with:
-          path: master
+          path: main
 
       - name: Checkout binaries branch
         uses: actions/checkout@v3
