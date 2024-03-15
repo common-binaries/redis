@@ -101,8 +101,6 @@ jobs:
         working-directory: binaries
         run: |
           git checkout --orphan binaries
-          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git binaries:binaries
-          git push --set-upstream https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git binaries
 
       - name: Download and unpack all workflow run artifacts
         uses: actions/download-artifact@v3
