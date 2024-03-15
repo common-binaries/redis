@@ -9,7 +9,7 @@ env:
   LINUX_LDFLAGS: -static
 jobs:
   redis-multi-linux:
-    name: redis-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux
+    name: redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -47,8 +47,8 @@ jobs:
           cp redis.conf conf/
           mkdir bin
           mv src/redis-server bin/
-          tar cvzf redis-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz conf/ bin/
-          mv redis-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz ../artifact/redis-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz
+          tar cvzf redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}.tar.gz conf/ bin/
+          mv redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}.tar.gz ../artifact/redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}.tar.gz
         shell: alpine.sh {0}
 
       - name: Upload redis binary to artifacts
