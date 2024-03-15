@@ -96,6 +96,7 @@ jobs:
           git checkout --orphan binaries_nouse
           git branch -d binaries
           git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git --delete binaries
+          rm -fr *
 
       - name: Create binaries branch
         working-directory: binaries
