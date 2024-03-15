@@ -82,12 +82,7 @@ jobs:
       image: docker://alpine:3.18
     steps:
       - name: Install dependencies
-        run: apk add -U git nodejs tree
-
-      - name: Checkout main branch
-        uses: actions/checkout@v3
-        with:
-          path: main
+        run: apk add -U git
 
       - name: Checkout binaries branch
         uses: actions/checkout@v3
@@ -103,16 +98,6 @@ jobs:
 
       - name: Move all binaries to the repository
         run: mv -v artifact/* binaries/
-
-      - name: Generate index.json
-        run: ./main/scripts/generate-index --json binaries/ binaries/index.json
-
-      - name: Generate index.csv
-        run: ./main/scripts/generate-index --csv binaries/ binaries/index.csv
-
-      - name: Generate index.html
-        working-directory: binaries
-        run: tree -hv -H . -o index.html .
 
       - name: Check if there are any changes
         id: has_changes
