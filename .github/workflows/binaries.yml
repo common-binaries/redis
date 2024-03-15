@@ -1,16 +1,6 @@
 name: binaries
 on:
   workflow_dispatch:
-  push:
-    tags-ignore:
-      - 'v**'
-    branches:
-      - '**'
-    paths:
-      - .github/workflows/binaries.yml
-  pull_request:
-  schedule:
-    - cron:  '0 0 * * 0'  # run each Sunday
 
 env:
   ALPINE_BRANCH: v3.18
@@ -50,10 +40,6 @@ jobs:
           packages: >
             build-base
             linux-headers
-            openssl-dev
-            openssl-libs-static
-            zlib-dev
-            zlib-static
 
       - name: Build Redis
         env:
@@ -64,7 +50,12 @@ jobs:
           cd redis-${{ matrix.REDIS_VERSION }}
           pwd
           make
-          mv src/redis-server ../artifact/redis-server-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux
+          mkdir conf
+          cp redis.conf conf/
+          mkdir bin
+          mv src/redis-server bin/
+          tar cvzf redis-server-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz conf/ bin/
+          mv redis-server-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz ../artifact/redis-server-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux.tar.gz
         shell: alpine.sh {0}
 
       - name: Upload redis binary to artifacts
@@ -135,4 +126,4 @@ jobs:
         run: |
           # XXX: workaround for https://github.com/orgs/community/discussions/55820
           git config --global http.version HTTP/1.1
-          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git binaries
+          git push https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git binaries:binaries
