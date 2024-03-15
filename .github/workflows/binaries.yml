@@ -7,7 +7,6 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   JOBS: 3
   LINUX_LDFLAGS: -static
-  WIN32_LDFLAGS: -Wl,--as-needed -Wl,-Map,linker.map
 jobs:
   redis-multi-linux:
     name: redis-${{ matrix.REDIS_VERSION }}-${{ matrix.ARCH }}-linux
@@ -86,7 +85,6 @@ jobs:
         shell: msys2 {0}
         env:
           CFLAGS: ${{ env.CFLAGS }}
-          LDFLAGS: ${{ env.WIN32_LDFLAGS }}
         run: |
           mkdir artifact
           pwd
