@@ -47,8 +47,9 @@ jobs:
           cp redis.conf conf/
           mkdir bin
           mv src/redis-server bin/
-          tar cvzf redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}.tar.gz conf/ bin/
-          mv redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}.tar.gz ../artifact/redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}.tar.gz
+          BIN_NAME="redis-${{ matrix.REDIS_VERSION }}-${HOST_OS}-${{ matrix.ARCH }}.tar.gz"
+          tar cvzf $BIN_NAME conf/ bin/
+          mv $BIN_NAME ../artifact/$BIN_NAME
         shell: alpine.sh {0}
 
       - name: Upload redis binary to artifacts
