@@ -8,13 +8,46 @@ env:
   JOBS: 3
   LINUX_LDFLAGS: -static
 jobs:
+  redis-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download source code
+        run: |
+          $tag_name="7.2.6"
+          Invoke-WebRequest -Uri https://github.com/redis/redis/archive/refs/tags/$($tag_name.Trim()).tar.gz -OutFile redis-$($tag_name.Trim()).tar.gz
+          Add-Content -Path $env:GITHUB_ENV -Value "RELEASE_VERSION=$($tag_name.Trim())"
+          Add-Content -Path $env:GITHUB_ENV -Value "REDIS_DIST=redis-$($tag_name.Trim())-win32-x86_64"
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: gcc make pkg-config libopenssl openssl-devel zip
+      - name: msys2 Build Redis
+        if: ${{ success() }}
+        run: |
+          workspace=$(pwd)
+          mkdir ${{ env.REDIS_DIST }}-msys2
+          sed -i 's/__GNU_VISIBLE/1/' /usr/include/dlfcn.h
+          tar -xzf redis-${{ env.RELEASE_VERSION }}.tar.gz
+          cd redis-${{ env.RELEASE_VERSION }}/src && ./mkreleasehdr.sh
+          cd ..
+          make BUILD_TLS=yes CFLAGS="-Wno-char-subscripts -O0"
+          find . -mindepth 1 -maxdepth 2 -type f -regex '.*\(\.exe\|\.conf\)' -exec cp -f "{}" "$workspace/${{ env.REDIS_DIST }}" \;
+          cd $workspace
+          cp /usr/bin/msys-2.0.dll /usr/bin/msys-crypto-3.dll /usr/bin/msys-ssl-3.dll ${{ env.REDIS_DIST }}
+          sed -i 's/pidfile \/var\/run/pidfile ./' ${{ env.REDIS_DIST }}/redis.conf
+          zip -q -r ${{ env.REDIS_DIST }}-msys2.zip ${{ env.REDIS_DIST }}
+          tar cvzf ${{ env.REDIS_DIST }}.tar.gz ${{ env.REDIS_DIST }}/
+          mv ${{ env.REDIS_DIST }} ../artifact/${{ env.REDIS_DIST }}
+        shell: msys2 {0}
   redis-multi-linux:
     name: redis-${{ matrix.REDIS_VERSION }}-linux-${{ matrix.ARCH }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         REDIS_VERSION:
-          - 7.2.4
+          - 7.2.6
         ARCH:
           - x86_64
           - aarch64
